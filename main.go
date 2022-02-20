@@ -10,8 +10,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"gitlab.com/NebulousLabs/Sia/build"
-	sia "gitlab.com/NebulousLabs/Sia/node/api/client"
+	"go.sia.tech/siad/build"
+	sia "go.sia.tech/siad/node/api/client"
 )
 
 var (

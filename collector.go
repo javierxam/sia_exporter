@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"gitlab.com/NebulousLabs/Sia/modules"
-	"gitlab.com/NebulousLabs/Sia/node/api"
-	sia "gitlab.com/NebulousLabs/Sia/node/api/client"
+	"go.sia.tech/siad/modules"
+	"go.sia.tech/siad/node/api"
+	sia "go.sia.tech/siad/node/api/client"
 	"gitlab.com/NebulousLabs/errors"
 )
 
