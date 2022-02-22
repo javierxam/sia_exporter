@@ -53,7 +53,7 @@ on just about any hardware platform there should be a binary that works for you.
 the box for most users.
 ```
 $> ./sia_exporter
-INFO[0000] Beginning to metrics at http://<your ip address>:9983/metrics
+INFO[0000] Beginning to metrics at http://<your ip address>:8080/metrics
 ```
 Once you've got sia_exporter running you can start adding metrics to Grafana.
 Metrics are organized by Sia modules. Adding charts, graphs, and alerts are as
@@ -75,18 +75,18 @@ Usage of ./sia_exporter:
   -modules string
         Sia Modules to monitor (default "cghmrtw")
   -port int
-        Port to serve Prometheus Metrics on (default 9983)
+        Port to serve Prometheus Metrics on (default 8080)
   -refresh int
         Frequency to get Metrics from Sia (minutes) (default 5)
 ```
-        
+
 ## Troubleshooting and installation details
 Verify that `sia_exporter` is gathering metrics and serving them over HTTP. This
 step verifies that `sia_exporter` is working as expected. Make sure you enter
 your private IP address of the node running sia_exporter wherever `<your ip
 address>` is shown.
 ```
-$> curl -s http://<your ip address>:9983/metrics
+$> curl -s http://<your ip address>:8080/metrics
 # HELP consensus_difficulty Consensus difficulty
 # TYPE consensus_difficulty gauge
 consensus_difficulty 1.8213302339204035e+18
@@ -120,7 +120,7 @@ scrape_configs:
         - job_name: 'sia_exporter'
           metrics_path: /metrics
           static_configs:
-                  - targets: ['<your ip address>:9983']
+                  - targets: ['<your ip address>:8080']
 ```
 Now log in to the Prometheus and verify its successfully scraping the
 sia_exporter metrics.

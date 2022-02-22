@@ -121,7 +121,7 @@ func main() {
 	address := flag.String("address", "127.0.0.1:9980", "Sia's API address")
 	agent := flag.String("agent", "Sia-Agent", "Sia agent")
 	refresh := flag.Int("refresh", 5, "Frequency to get Metrics from Sia (minutes)")
-	port := flag.Int("port", 9983, "Port to serve Prometheus Metrics on")
+	port := flag.Int("port", 8080, "Port to serve Prometheus Metrics on")
 	flag.StringVar(&module, "modules", "cghmrtw", "Sia Modules to monitor")
 	flag.Parse()
 
