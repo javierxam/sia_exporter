@@ -5,6 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.sia.tech/siad/modules"
 	"go.sia.tech/siad/node/api"
+	"go.sia.tech/siad/types"
 	sia "go.sia.tech/siad/node/api/client"
 	"gitlab.com/NebulousLabs/errors"
 )
@@ -24,6 +25,10 @@ var (
 		Name: "renter_aggregate_num_stuck_chunks", Help: "The aggregate number of stuck chunks"})
 	renterAggregateSize = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "renter_aggregate_size", Help: "The aggregate size of data stored on Sia"})
+	renterAggregateRepairSize = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "renter_aggregate_repair_size", Help: "The aggregate size of data waiting to be repaired"})
+	renterAggregateStuckSize = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "renter_aggregate_stuck_size", Help: "The aggregate size of stuck data waiting to be repaired"})
 	renterMaxHealth = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "renter_max_health", Help: "The max health"})
 	renterMaxHealthAggregatedPercentage = promauto.NewGauge(prometheus.GaugeOpts{
@@ -49,6 +54,8 @@ var (
 		Name: "renter_num_expired_contracts", Help: "Number of expired contracts"})
 	renterNumExpiredRefreshedContracts = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "renter_num_expired_refreshed_contracts", Help: "Number of expired refreshed contracts"})
+	renterTotalRenewing = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "renter_total_renewing", Help: "Total renewing data"})
 	// Allowance
 	renterAllowanceAmount = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "renter_allowance_amount", Help: "Renter allowance Amount (siacoins)"})
@@ -233,6 +240,8 @@ func renterMetrics(sc *sia.Client) {
 	renterAggregateNumFiles.Set(float64(rg.Directories[0].AggregateNumFiles))
 	renterAggregateNumStuckChunks.Set(float64(rg.Directories[0].AggregateNumStuckChunks))
 	renterAggregateSize.Set(float64(rg.Directories[0].AggregateSize))
+	renterAggregateRepairSize.Set(float64(rg.Directories[0].AggregateRepairSize))
+	renterAggregateStuckSize.Set(float64(rg.Directories[0].AggregateStuckSize))
 	renterMaxHealth.Set(float64(rg.Directories[0].MaxHealth))
 	renterMaxHealthAggregatedPercentage.Set(float64(rg.Directories[0].AggregateMaxHealthPercentage))
 	renterMinRedundancy.Set(float64(rg.Directories[0].MinRedundancy))
@@ -247,6 +256,9 @@ func renterMetrics(sc *sia.Client) {
 	renterNumPassiveContracts.Set(float64(len(rc.PassiveContracts)))
 	renterNumRefreshedContracts.Set(float64(len(rc.RefreshedContracts)))
 	renterNumDisabledContracts.Set(float64(len(rc.DisabledContracts)))
+	activeSize, _, _, _ := contractStats(rc.ActiveContracts)
+	passiveSize, _, _, _ := contractStats(rc.PassiveContracts)
+	renterTotalRenewing.Set(float64(activeSize+passiveSize))
 
 	rce, err := sc.RenterDisabledContractsGet()
 	if err != nil {
@@ -416,4 +428,21 @@ func hostdbMetrics(sc *sia.Client) {
 	hostdbNumActiveHosts.Set(float64(len(activeHosts)))
 	hostdbNumInactiveHosts.Set(float64(len(inactiveHosts)))
 	hostdbNumOfflineHosts.Set(float64(len(offlineHosts)))
+}
+
+func contractStats(contracts []api.RenterContract) (size uint64, spent, remaining, fees types.Currency) {
+	for _, c := range contracts {
+		size += c.Size
+		remaining = remaining.Add(c.RenterFunds)
+		fees = fees.Add(c.Fees)
+		// Negative Currency Check
+		var contractTotalSpent types.Currency
+		if c.TotalCost.Cmp(c.RenterFunds.Add(c.Fees)) < 0 {
+			contractTotalSpent = c.RenterFunds.Add(c.Fees)
+		} else {
+			contractTotalSpent = c.TotalCost.Sub(c.RenterFunds).Sub(c.Fees)
+		}
+		spent = spent.Add(contractTotalSpent)
+	}
+	return
 }
