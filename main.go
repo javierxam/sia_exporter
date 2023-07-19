@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"go.sia.tech/siad/build"
@@ -74,11 +73,6 @@ func updateMetrics(sc *sia.Client) {
 
 	log.Debug("Updating metrics for modules:", module)
 
-	if strings.Contains(module, "c") {
-		log.Debug("Updating Consensus Metrics")
-		consensusMetrics(sc)
-	}
-
 	if strings.Contains(module, "w") {
 		log.Debug("Updating Wallet Metrics")
 		walletMetrics(sc)
@@ -88,6 +82,7 @@ func updateMetrics(sc *sia.Client) {
 		log.Debug("Updating Host Metrics")
 		hostMetrics(sc)
 	}
+
 
 }
 
@@ -99,11 +94,10 @@ func main() {
 	agent := flag.String("agent", "Sia-Agent", "Sia agent")
 	refresh := flag.Int("refresh", 1, "Frequency to get Metrics from Sia (minutes)")
 	port := flag.Int("port", 8888, "Port to serve Prometheus Metrics on")
-	flag.StringVar(&module, "modules", "cwh", "Sia Modules to monitor")
+	flag.StringVar(&module, "modules", "wh", "Sia Modules to monitor")
 	flag.Parse()
 
-	// Initialize the logger
-	initLogger(debug)
+
 
 	// Set the Sia Client connection information
 	sc := sia.New(sia.Options{Address: *address})
@@ -120,6 +114,6 @@ func main() {
 	// This section will start the HTTP server and expose
 	// any metrics on the /metrics endpoint.
 	http.Handle("/metrics", promhttp.Handler())
-	log.Info("Beginning to metrics at http://192.168.0.10:", *port, "/metrics")
+	log.Info("Beginning to metrics at http://192.168.0.11:", *port, "/metrics")
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
 }
