@@ -4,7 +4,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.sia.tech/siad/modules"
-	"go.sia.tech/siad/node/api"
 	sia "go.sia.tech/siad/node/api/client"
 	"gitlab.com/NebulousLabs/errors"
 	)
@@ -26,12 +25,6 @@ var (
 	// Host Metrics
 	hostAcceptingContracts = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "host_accepting_contracts", Help: "Is the host accepting contracts 0=no, 1=yes"})
-	hostMaxDuration = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "host_max_duration", Help: "max duration in weeks"})
-	hostMaxDownloadBatchSize = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "host_max_download_batch_size", Help: "Max Download Batch Size"})
-	hostMaxReviseBatchSize = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "host_max_revise_batch_size", Help: "Max revise Batch Size"})
 	hostWindowSize = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "host_window_size", Help: "Window Size in hours"})
 	hostCollateral = promauto.NewGauge(prometheus.GaugeOpts{
@@ -54,11 +47,6 @@ var (
 		Name: "host_egress_potential", Help: "Egress potential revenue"})
 	hostStorageRevenue = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "host_storage_potential", Help: "Storage potential revenue"})
-	hostUpload = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "host_Upload", Help: "Node Data Uploaded"})
-	hostDownload = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "host_Download", Help: "Node Data Downloaded"})
-	
 	)
 
 const (
@@ -66,28 +54,9 @@ const (
 )
 
 func hostMetrics(sc *sia.Client) {
-	hg, err := sc.HostGet()
-	if errors.Contains(err, ErrAPICallNotRecognized) {
-		// Assume module is not loaded if status command is not recognized.
-		log.Info("Host module is not loaded")
-		return
-	} else if err != nil {
-		log.Info("Could not fetch host settings")
-	}
-
-	sg, err := sc.HostStorageGet()
-	if err != nil {
-		log.Info("Could not fetch storage info")
-	}
-
-	band, err := sc.HostBandwidthGet()
-	if errors.Contains(err, ErrAPICallNotRecognized) {
-		// Assume module is not loaded if status command is not recognized.
-		log.Info("Host module is not loaded")
-		return
-	} else if err != nil {
-		log.Info("Could not fetch host settings")
-	}
+	hg  := sc.HostGet()
+	sg := sc.HostStorageGet()
+	
 
 	es := hg.ExternalSettings
 	fm := hg.FinancialMetrics
@@ -104,9 +73,6 @@ func hostMetrics(sc *sia.Client) {
 	hostAcceptingContracts.Set(boolToFloat64(is.AcceptingContracts))
 	hostTotalStorage.Set(float64(es.TotalStorage))
 	hostRemainingStorage.Set(float64(es.RemainingStorage))
-	hostMaxDuration.Set(float64(is.MaxDuration))
-	hostMaxDownloadBatchSize.Set(float64(is.MaxDownloadBatchSize))
-	hostMaxReviseBatchSize.Set(float64(is.MaxReviseBatchSize))
 	hostWindowSize.Set(float64(is.WindowSize / 6))
 	hostCollateralFloat, _ := is.Collateral.Mul(modules.BlockBytesPerMonthTerabyte).Float64()
 	hostCollateral.Set(hostCollateralFloat / 1e24)
@@ -132,11 +98,11 @@ func hostMetrics(sc *sia.Client) {
 func walletMetrics(sc *sia.Client) {
 	status, err := sc.WalletGet()
 	if errors.Contains(err, ErrAPICallNotRecognized) {
-		log.Info("Wallet module is not loaded")
+		
 		walletModuleLoaded.Set(boolToFloat64(false))
 		return
 	} else if err != nil {
-		log.Info("Could not get Wallet metrics")
+		
 		return
 	}
 	walletModuleLoaded.Set(boolToFloat64(true))
@@ -146,7 +112,6 @@ func walletMetrics(sc *sia.Client) {
 	walletLocked.Set(boolToFloat64(true))
 
 	ConfirmedBalance, _ := status.ConfirmedSiacoinBalance.Float64()
-	walletConfirmedSiacoinBalanceHastings.Set(ConfirmedBalance)
 	walletConfirmedSiacoinBalance.Set(ConfirmedBalance / 1e24)
 
 }

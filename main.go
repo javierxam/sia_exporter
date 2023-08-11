@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"go.sia.tech/siad/build"
@@ -73,9 +74,29 @@ func updateMetrics(sc *sia.Client) {
 
 	log.Debug("Updating metrics for modules:", module)
 
+	log.Debug("Updating Daemon Metrics")
+	daemonMetrics(sc)
+
+	if strings.Contains(module, "r") {
+		log.Debug("Updating Renter Metrics")
+		renterMetrics(sc)
+		log.Debug("Updating hostdb Metrics")
+		hostdbMetrics(sc)
+	}
+
+	if strings.Contains(module, "c") {
+		log.Debug("Updating Consensus Metrics")
+		consensusMetrics(sc)
+	}
+
 	if strings.Contains(module, "w") {
 		log.Debug("Updating Wallet Metrics")
 		walletMetrics(sc)
+	}
+
+	if strings.Contains(module, "g") {
+		log.Debug("Updating Gateway Metrics")
+		gatewayMetrics(sc)
 	}
 
 	if strings.Contains(module, "h") {
@@ -83,6 +104,13 @@ func updateMetrics(sc *sia.Client) {
 		hostMetrics(sc)
 	}
 
+	if strings.Contains(module, "m") {
+		log.Info("Miner metrics are not implemented yet")
+	}
+
+	if strings.Contains(module, "t") {
+		log.Info("Transactionpool metrics are not implemented yet")
+	}
 
 }
 
@@ -92,12 +120,13 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug mode. Warning: generates a lot of output.")
 	address := flag.String("address", "127.0.0.1:9980", "Sia's API address")
 	agent := flag.String("agent", "Sia-Agent", "Sia agent")
-	refresh := flag.Int("refresh", 1, "Frequency to get Metrics from Sia (minutes)")
-	port := flag.Int("port", 8888, "Port to serve Prometheus Metrics on")
-	flag.StringVar(&module, "modules", "wh", "Sia Modules to monitor")
+	refresh := flag.Int("refresh", 5, "Frequency to get Metrics from Sia (minutes)")
+	port := flag.Int("port", 8080, "Port to serve Prometheus Metrics on")
+	flag.StringVar(&module, "modules", "cghmrtw", "Sia Modules to monitor")
 	flag.Parse()
 
-
+	// Initialize the logger
+	initLogger(debug)
 
 	// Set the Sia Client connection information
 	sc := sia.New(sia.Options{Address: *address})
@@ -114,6 +143,6 @@ func main() {
 	// This section will start the HTTP server and expose
 	// any metrics on the /metrics endpoint.
 	http.Handle("/metrics", promhttp.Handler())
-	log.Info("Beginning to metrics at http://192.168.0.11:", *port, "/metrics")
+	log.Info("Beginning to metrics at http://<your ip address>:", *port, "/metrics")
 	log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), nil))
 }
